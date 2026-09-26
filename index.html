@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShokaCraft（ショカクラフト）</title>
+<meta name="description" content="日本語の小説を書くためのデスクトップエディタ。ルビ・縦書きプレビュー・投稿サイト向けの書き出し・設定Wiki・糸の設計・バージョン保存。macOS・Windows・Linux。">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f7f4ee; --surface: #ffffff; --ink: #1f2a3c; --muted: #5b6475; --line: #e3ddd1;
+    --accent: #1f2a3c; --accent-ink: #f7f4ee; --paper: #d4c5a8; --tag: #efe8da;
+    --hook: #7fb0e8; --tease: #d9a44e; --pay: #e8cf6f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151c28; --surface: #1c2433; --ink: #ece6da; --muted: #a3aab8; --line: #2c3547;
+      --accent: #d4c5a8; --accent-ink: #1f2a3c; --tag: #263043;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Noto Sans JP", "Noto Sans CJK JP", Meiryo, sans-serif;
+    line-height: 1.8; font-feature-settings: "palt";
+  }
+  .mincho { font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", "Noto Serif CJK JP", serif; }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; text-decoration: none; }
+  .brand img { width: 28px; height: 28px; border-radius: 6px; }
+  nav a { margin-left: 18px; color: var(--muted); text-decoration: none; font-size: 14px; }
+  nav a:hover { color: var(--ink); }
+
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px; align-items: center; padding: 48px 0 64px; }
+  .hero h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.35; margin: 0 0 16px; letter-spacing: .02em; }
+  .hero p.lead { color: var(--muted); font-size: 17px; margin: 0 0 28px; }
+  .badge { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--tag); color: var(--muted); margin-bottom: 14px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; border: 1px solid var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.ghost { color: var(--ink); background: transparent; border-color: var(--line); }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 12px; }
+
+  /* 画面の模型 */
+  .window { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 18px 40px rgba(20, 28, 40, .12); overflow: hidden; }
+  .window .bar { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); align-items: center; font-size: 12px; color: var(--muted); }
+  .window .bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); display: inline-block; }
+  .window .bar span { margin-left: auto; }
+  .panes { display: grid; grid-template-columns: 26% 1fr; min-height: 250px; }
+  .tree { border-right: 1px solid var(--line); padding: 12px; font-size: 12px; color: var(--muted); }
+  .tree div { padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tree .on { color: var(--ink); font-weight: 700; }
+  .page { padding: 16px 20px; font-size: 14px; }
+  .page .line { padding: 2px 8px; border-radius: 4px; }
+  .page .hook { background: color-mix(in srgb, var(--hook) 22%, transparent); }
+  .page .tease { background: color-mix(in srgb, var(--tease) 22%, transparent); }
+  .page .edge { border-top: 2px solid var(--tease); margin-top: 8px; padding-top: 6px; position: relative; }
+  .page .edge small { position: absolute; top: -11px; left: 6px; font-size: 10px; background: var(--tease); color: #1f2a3c; padding: 0 6px; border-radius: 4px; }
+  ruby rt { font-size: .55em; color: var(--muted); }
+
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  section h2 { font-size: 24px; margin: 0 0 8px; }
+  section p.sub { color: var(--muted); margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .card h3 { font-size: 16px; margin: 0 0 6px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .dl .card.me { outline: 2px solid var(--accent); }
+  .dl h3 { display: flex; justify-content: space-between; align-items: baseline; }
+  .dl h3 em { font-style: normal; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .dl .links { display: flex; flex-direction: column; gap: 8px; margin: 14px 0; }
+  .dl .links a { font-size: 14px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); text-decoration: none; display: flex; flex-direction: column; overflow-wrap: anywhere; }
+  .dl .links a:hover { border-color: var(--accent); }
+  .dl .links a span { color: var(--muted); font-size: 12px; }
+  .note { font-size: 13px; color: var(--muted); }
+  .pending-note { display: none; background: var(--tag); border-radius: 10px; padding: 12px 16px; margin: 0 0 18px; font-size: 14px; }
+  body.pending .pending-note { display: block; }
+  body.pending .dl .links a { pointer-events: none; opacity: .5; }
+  .note b { color: var(--ink); }
+  details { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--ink); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .92em; background: var(--tag); padding: 1px 5px; border-radius: 4px; }
+
+  table.req { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.req th, table.req td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.req th { width: 120px; color: var(--muted); font-weight: 400; }
+
+  footer { padding: 32px 0 48px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; padding-top: 24px; }
+    .grid, .dl { grid-template-columns: 1fr; }
+    nav { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#"><img src="icon.svg" alt="">ShokaCraft</a>
+    <nav><a href="#features">できること</a><a href="#download">ダウンロード</a><a href="#requirements">動作環境</a><a href="#terms">利用について</a></nav>
+  </header>
+
+  <div class="hero">
+    <div>
+      <span class="badge">プレビュー版 <span data-version>0.1.0</span></span>
+      <h1 class="mincho">小説を書くための、<br>軽くて頼れる書架。</h1>
+      <p class="lead">ShokaCraft（ショカクラフト）は、日本語の小説のためのデスクトップエディタです。ルビも縦書きも投稿サイトの文字数もそのまま扱え、伏線や引きの設計、設定資料、バージョン保存までを一つの画面にまとめました。</p>
+      <div class="cta">
+        <a class="btn primary" id="main-download" href="#download">ダウンロード</a>
+        <a class="btn ghost" href="#features">できること</a>
+      </div>
+      <div class="meta" id="main-meta">macOS・Windows・Linux</div>
+    </div>
+    <div class="window" aria-hidden="true">
+      <div class="bar"><i></i><i></i><i></i><span>総文字数 12,400字 ・ 保存済み</span></div>
+      <div class="panes">
+        <div class="tree">
+          <div>▾ 第1章</div><div class="on">　運命の出会い</div><div>　王都アルデン</div><div>▸ 第2章</div><div style="margin-top:10px">📚 設定Wiki</div><div>　佐倉ミオ</div>
+        </div>
+        <div class="page mincho">
+          <div class="line hook">宰相は<ruby>手袋<rt>てぶくろ</rt></ruby>を外さない。</div>
+          <div class="line hook">杯を受け取る時でさえ。</div>
+          <div class="line tease edge"><small>焦らし・宰相の手袋</small>なぜ外さないのだろう。</div>
+          <div class="line tease">古い傷です、と侍従は言った。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>できること</h2>
+    <p class="sub">いちばん大事なのは、原稿を失わないこと。そのうえで、日本語の小説に要るものを揃えました。</p>
+    <div class="grid">
+      <div class="card"><h3>原稿を失わない</h3><p>自動保存と、保存に失敗した時の退避。原稿ごとに世代を残し、いつでも「この時点に戻す」ことができます。</p></div>
+      <div class="card"><h3>ルビ・傍点・縦書き</h3><p><code>｜漢字《かんじ》</code> や傍点を、書きながらその場で表示。縦書きのプレビューで仕上がりを確かめられます。</p></div>
+      <div class="card"><h3>投稿サイトの文字数</h3><p>なろう・カクヨムと同じ数え方の文字数と原稿用紙換算。各サイトの記法に合わせて書き出せます。</p></div>
+      <div class="card"><h3>設定Wiki</h3><p>登場人物や世界観を Markdown で。本文に出てきた設定は、書いている横にカードで並びます。</p></div>
+      <div class="card"><h3>糸の設計</h3><p>引き・焦らし・売り、そして伏線。本文に小さな印を置くだけで、物語の緊張の流れと未回収の伏線が見えます。</p></div>
+      <div class="card"><h3>バージョン保存</h3><p>「バージョンを保存」と「履歴を見る」だけで Git を使えます。GitHub へのバックアップと、複数の端末での執筆にも。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2>ダウンロード</h2>
+    <p class="sub">最新版 <b data-version>0.1.0</b><span data-date></span>。お使いの OS のものを選んでください。</p>
+    <p class="pending-note">配布物は準備中です。公開したら、ここからダウンロードできるようになります。</p>
+    <div class="dl">
+      <div class="card" data-os="mac">
+        <h3>macOS <em>Apple シリコン・Intel</em></h3>
+        <div class="links"><a data-asset="ShokaCraft-macos.dmg">ShokaCraft-macos.dmg <span>ディスクイメージ</span></a></div>
+        <p class="note">開いたら、ShokaCraft をアプリケーションフォルダへドラッグします。</p>
+        <details><summary>「開発元を確認できないため開けません」と出たら</summary>
+          <p>プレビュー版は Apple の公証を受けていません。Finder でアプリを<b>右クリック →「開く」</b>を選ぶと、次からは普通に開けます（システム設定 → プライバシーとセキュリティ の「このまま開く」でも同じです）。</p></details>
+      </div>
+      <div class="card" data-os="win">
+        <h3>Windows <em>10・11（64 ビット）</em></h3>
+        <div class="links">
+          <a data-asset="ShokaCraft-windows-setup.exe">ShokaCraft-windows-setup.exe <span>インストーラー</span></a>
+          <a data-asset="ShokaCraft-windows.msi">ShokaCraft-windows.msi <span>MSI（管理者向け）</span></a>
+        </div>
+        <p class="note">ふつうは上のインストーラーを使ってください。</p>
+        <details><summary>「Windows によって PC が保護されました」と出たら</summary>
+          <p>プレビュー版には署名がありません。<b>「詳細情報」→「実行」</b>で進めます。</p></details>
+      </div>
+      <div class="card" data-os="linux">
+        <h3>Linux <em>x86_64</em></h3>
+        <div class="links">
+          <a data-asset="ShokaCraft-linux.AppImage">ShokaCraft-linux.AppImage <span>どのディストリビューションでも</span></a>
+          <a data-asset="ShokaCraft-linux.deb">ShokaCraft-linux.deb <span>Ubuntu・Debian</span></a>
+        </div>
+        <details><summary>使い方</summary>
+          <p>AppImage は <code>chmod +x ShokaCraft-linux.AppImage</code> で実行できるようにしてから開きます。deb は <code>sudo apt install ./ShokaCraft-linux.deb</code>。日本語入力には fcitx5 か IBus（Mozc など）をお使いください。</p></details>
+      </div>
+    </div>
+    <p class="note" style="margin-top:18px">過去の版と変更点は <a id="all-releases" href="#">リリースの一覧</a> にあります。</p>
+  </div>
+</section>
+
+<section id="requirements">
+  <div class="wrap">
+    <h2>動作環境</h2>
+    <table class="req">
+      <tr><th>macOS</th><td>macOS 11 Big Sur 以降</td></tr>
+      <tr><th>Windows</th><td>Windows 10・11（64 ビット）。WebView2 が無ければインストーラーが入れます</td></tr>
+      <tr><th>Linux</th><td>WebKitGTK 4.1 が動く x86_64 のディストリビューション（Ubuntu 22.04 以降など）</td></tr>
+      <tr><th>原稿の形式</th><td>Markdown のテキストファイル。VS Code などほかのエディタでも開けます</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="terms">
+  <div class="wrap">
+    <h2>利用について</h2>
+    <p class="note">ShokaCraft はオープンソースではありません。配布しているのはアプリだけで、ソースコードは公開していません。アプリの再配布・改変・リバースエンジニアリングはご遠慮ください。</p>
+    <p class="note">プレビュー版は、原稿を失わないことを最優先に作っていますが、動作の確認が済んでいない機能があります。大切な原稿は、バージョン保存や別の場所へのバックアップと併せてお使いください。</p>
+  </div>
+</section>
+
+<div class="wrap"><footer>© 2026 ShokaCraft</footer></div>
+
+<script>
+  // 配布物を置く公開リポジトリ（ソースは別の非公開リポジトリ）
+  const REPO = 'daiki-moritake/shoka-craft-releases'
+  const latest = name => `https://github.com/${REPO}/releases/latest/download/${name}`
+  document.querySelectorAll('[data-asset]').forEach(a => { a.href = latest(a.dataset.asset) })
+  document.getElementById('all-releases').href = `https://github.com/${REPO}/releases`
+
+  // お使いの OS の欄を目立たせ、一番上のボタンもその OS の配布物にする
+  const ua = navigator.userAgent
+  const os = /Windows/.test(ua) ? 'win' : /Mac OS X|Macintosh/.test(ua) && !/iPhone|iPad/.test(ua) ? 'mac' : /Linux/.test(ua) && !/Android/.test(ua) ? 'linux' : null
+  const main = { mac: ['ShokaCraft-macos.dmg', 'macOS 版'], win: ['ShokaCraft-windows-setup.exe', 'Windows 版'], linux: ['ShokaCraft-linux.AppImage', 'Linux 版（AppImage）'] }[os]
+  if (main) {
+    document.querySelector(`[data-os="${os}"]`).classList.add('me')
+    const b = document.getElementById('main-download')
+    b.href = latest(main[0]); b.textContent = `${main[1]}をダウンロード`
+    document.getElementById('main-meta').innerHTML = 'ほかの OS は <a href="#download">ダウンロード</a> から'
+  }
+
+  // 最新の版と日付（取れなければ書いてある版のまま）
+  // まだ1つも出していなければ（404）、リンクを押せなくして「準備中」と出す（壊れたリンクを見せない）
+  fetch(`https://api.github.com/repos/${REPO}/releases/latest`).then(r => {
+    if (r.status === 404) {
+      document.body.classList.add('pending')
+      const b = document.getElementById('main-download')
+      b.href = '#download'; b.textContent = 'ダウンロード（準備中）'
+    }
+    return r.ok ? r.json() : null
+  }).then(r => {
+    if (!r) return
+    const v = String(r.tag_name || '').replace(/^v/, '')
+    if (v) document.querySelectorAll('[data-version]').forEach(e => { e.textContent = v })
+    if (r.published_at) document.querySelectorAll('[data-date]').forEach(e => { e.textContent = `（${new Date(r.published_at).toLocaleDateString('ja-JP')}）` })
+  }).catch(() => {})
+</script>
+</body>
+</html>
